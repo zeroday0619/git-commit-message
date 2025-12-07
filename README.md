@@ -67,6 +67,19 @@ git-commit-message --one-line "optional context"
 git-commit-message --one-line --max-length 50 "optional context"
 ```
 
+- Chunk long diffs by token budget (0 = single chunk + summary, -1 = disable chunking):
+
+```sh
+# force a single summary pass over the whole diff (default)
+git-commit-message --chunk-tokens 0 "optional context"
+
+# chunk the diff into ~4000-token pieces before summarising
+git-commit-message --chunk-tokens 4000 "optional context"
+
+# disable summarisation and use the legacy one-shot prompt
+git-commit-message --chunk-tokens -1 "optional context"
+```
+
 - Commit immediately with editor:
 
 ```sh
@@ -96,6 +109,7 @@ Environment:
 - `OPENAI_API_KEY`: required
 - `GIT_COMMIT_MESSAGE_MODEL` or `OPENAI_MODEL`: optional (default: `gpt-5-mini`)
 - `GIT_COMMIT_MESSAGE_LANGUAGE`: optional (default: `en-GB`)
+- `GIT_COMMIT_MESSAGE_CHUNK_TOKENS`: optional token budget per diff chunk (default: 0 = single chunk + summary; -1 disables summarisation)
 
 ## AI‑generated code notice
 

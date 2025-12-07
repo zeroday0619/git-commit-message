@@ -1,18 +1,18 @@
-from __future__ import annotations
-
 """Git-related helper functions.
 
 Provides repository root discovery, extraction of staged changes, and
 creating commits from a message.
 """
 
+from __future__ import annotations
+
 from pathlib import Path
-import subprocess
+from subprocess import CalledProcessError, check_call, check_output, run
 
 
 def get_repo_root(
-    *,
     cwd: Path | None = None,
+    /,
 ) -> Path:
     """Find the repository root from the current working directory.
 
@@ -29,7 +29,7 @@ def get_repo_root(
 
     start: Path = cwd or Path.cwd()
     try:
-        out: bytes = subprocess.check_output(
+        out: bytes = check_output(
             [
                 "git",
                 "rev-parse",
@@ -37,7 +37,7 @@ def get_repo_root(
             ],
             cwd=str(start),
         )
-    except subprocess.CalledProcessError as exc:  # noqa: TRY003
+    except CalledProcessError as exc:  # noqa: TRY003
         raise RuntimeError("Not a Git repository.") from exc
 
     root = Path(out.decode().strip())
@@ -45,28 +45,28 @@ def get_repo_root(
 
 
 def has_staged_changes(
-    *,
     cwd: Path,
+    /,
 ) -> bool:
     """Check whether there are staged changes."""
 
     try:
-        subprocess.check_call(
+        check_call(
             ["git", "diff", "--cached", "--quiet", "--exit-code"],
             cwd=str(cwd),
         )
         return False
-    except subprocess.CalledProcessError:
+    except CalledProcessError:
         return True
 
 
 def get_staged_diff(
-    *,
     cwd: Path,
+    /,
 ) -> str:
     """Return the staged changes as diff text."""
 
-    out: bytes = subprocess.check_output(
+    out: bytes = check_output(
         [
             "git",
             "diff",
@@ -81,10 +81,10 @@ def get_staged_diff(
 
 
 def commit_with_message(
-    *,
     message: str,
     edit: bool,
     cwd: Path,
+    /,
 ) -> int:
     """Create a commit with the given message.
 
@@ -108,7 +108,7 @@ def commit_with_message(
         cmd.append("--edit")
 
     try:
-        completed = subprocess.run(cmd, cwd=str(cwd), check=False)
+        completed = run(cmd, cwd=str(cwd), check=False)
         return int(completed.returncode)
     except OSError as exc:  # e.g., editor launch failure, etc.
         raise RuntimeError(f"Failed to run 'git commit': {exc}") from exc
