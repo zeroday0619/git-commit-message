@@ -9,6 +9,7 @@ Migrated to use OpenAI Responses API (client.responses.create).
 
 import os
 from typing import Final
+from babel import Locale
 from openai import OpenAI
 
 
@@ -21,11 +22,12 @@ def _build_system_prompt(
     subject_max: int | None,
     language: str,
 ) -> str:
+    display_language: str = _language_display(language)
     max_len = subject_max or 72
     if single_line:
         return (
             f"You are an expert Git commit message generator. "
-            f"Always use '{language}' spelling and style. "
+            f"Always use '{display_language}' spelling and style. "
             f"Return a single-line imperative subject only (<= {max_len} chars). "
             f"Do not include a body, bullet points, or any rationale. Do not include any line breaks. "
             f"Consider the user-provided auxiliary context if present. "
@@ -33,7 +35,7 @@ def _build_system_prompt(
         )
     return (
         f"You are an expert Git commit message generator. "
-        f"Always use '{language}' spelling and style. "
+        f"Always use '{display_language}' spelling and style. "
         f"The subject line is mandatory: you MUST start the output with the subject as the very first non-empty line, "
         f"in imperative mood, and keep it <= {max_len} chars. Insert exactly one blank line after the subject. "
         f"Never start with bullets, headings, labels, or any other text. Then include a body in this format.\n\n"
@@ -52,6 +54,7 @@ def _build_system_prompt(
         f"- Prefer imperative mood verbs (Add, Fix, Update, Remove, Refactor, Document, etc.).\n"
         f"- Focus on what changed and why; avoid copying diff hunks verbatim.\n"
         f"- The only allowed label is the equivalent of 'Rationale:' translated into the target language; do not add other headings or prefaces.\n"
+        f"- All text (subject, bullets, rationale label, rationale content) MUST be in the target language: '{display_language}'. Do not mix other languages.\n"
         f"- Do not include the '---' delimiter lines, code fences, or any surrounding labels like 'Commit message:'.\n"
         f"- Do not copy or reuse any example text verbatim; produce original content based on the provided diff and context.\n"
         f"- If few details are necessary, include at least one bullet summarising the key change.\n"
@@ -59,6 +62,31 @@ def _build_system_prompt(
         f"- Consider the user-provided auxiliary context if present.\n"
         f"Return only the commit message text in the above format (no code fences or extra labels)."
     )
+
+
+def _language_display(language: str) -> str:
+    """Return a human-friendly language display like 'ko-KR, Korean (South Korea)'."""
+
+    try:
+        locale = Locale.parse(language, sep="-")
+    except Exception:
+        return language
+
+    tag_parts = [
+        locale.language,
+        locale.script,
+        locale.territory,
+        locale.variant,
+    ]
+    tag = "-".join(part for part in tag_parts if part)
+    if not tag:
+        return language
+
+    english_name = locale.get_display_name("en") or ""
+    if not english_name:
+        return f"[{tag}]"
+
+    return f"{english_name.capitalize()} [{tag}]"
 
 
 def _instructions(
