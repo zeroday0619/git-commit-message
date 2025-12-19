@@ -1,6 +1,6 @@
 """Command-line interface entry point.
 
-Collect staged changes from the repository and call an OpenAI GPT model
+Collect staged changes from the repository and call an LLM provider
 to generate a commit message, or create a commit straight away.
 """
 
@@ -19,10 +19,11 @@ from ._git import (
     get_staged_diff,
     has_staged_changes,
 )
-from ._gpt import (
+from ._llm import (
+    CommitMessageResult,
+    UnsupportedProviderError,
     generate_commit_message,
     generate_commit_message_with_info,
-    CommitMessageResult,
 )
 
 
@@ -50,7 +51,7 @@ def _build_parser() -> ArgumentParser:
     parser: ArgumentParser = ArgumentParser(
         prog="git-commit-message",
         description=(
-            "Generate a commit message with OpenAI GPT based on the staged changes."
+            "Generate a commit message based on the staged changes."
         ),
     )
 
@@ -70,6 +71,16 @@ def _build_parser() -> ArgumentParser:
         "--edit",
         action="store_true",
         help="Open an editor to amend the message before committing. Use with '--commit'.",
+    )
+
+    parser.add_argument(
+        "--provider",
+        default=None,
+        help=(
+            "LLM provider to use (default: openai). "
+            "You may also set GIT_COMMIT_MESSAGE_PROVIDER. "
+            "The CLI flag overrides the environment variable."
+        ),
     )
 
     parser.add_argument(
@@ -170,6 +181,7 @@ def _run(
                 getattr(args, "max_length", None),
                 getattr(args, "language", None),
                 chunk_tokens,
+                getattr(args, "provider", None),
             )
             message = result.message
         else:
@@ -181,7 +193,11 @@ def _run(
                 getattr(args, "max_length", None),
                 getattr(args, "language", None),
                 chunk_tokens,
+                getattr(args, "provider", None),
             )
+    except UnsupportedProviderError as exc:
+        print(str(exc), file=stderr)
+        return 3
     except Exception as exc:  # noqa: BLE001 - to preserve standard output messaging
         print(f"Failed to generate commit message: {exc}", file=stderr)
         return 3
@@ -199,7 +215,8 @@ def _run(
     if not args.commit:
         if args.debug and result is not None:
             # Print debug information
-            print("==== OpenAI Usage ====")
+            print(f"==== {result.provider} Usage ====")
+            print(f"provider: {result.provider}")
             print(f"model: {result.model}")
             print(f"response_id: {getattr(result, 'response_id', '(n/a)')}")
             if result.total_tokens is not None:
@@ -220,7 +237,8 @@ def _run(
 
     if args.debug and result is not None:
         # Also print debug info before commit
-        print("==== OpenAI Usage ====")
+        print(f"==== {result.provider} Usage ====")
+        print(f"provider: {result.provider}")
         print(f"model: {result.model}")
         print(f"response_id: {getattr(result, 'response_id', '(n/a)')}")
         if result.total_tokens is not None:

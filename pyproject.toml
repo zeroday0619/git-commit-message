@@ -1,7 +1,7 @@
 [project]
 name = "git-commit-message"
-version = "0.6.0"
-description = "Generate Git commit messages from staged changes using OpenAI GPT"
+version = "0.7.0"
+description = "Generate Git commit messages from staged changes using LLM"
 readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [

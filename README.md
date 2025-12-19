@@ -61,6 +61,12 @@ git-commit-message "optional extra context about the change"
 git-commit-message --one-line "optional context"
 ```
 
+- Select provider (default: openai):
+
+```sh
+git-commit-message --provider openai "optional context"
+```
+
 - Limit subject length (default 72):
 
 ```sh
@@ -86,6 +92,12 @@ git-commit-message --chunk-tokens -1 "optional context"
 git-commit-message --commit --edit "refactor parser for speed"
 ```
 
+- Print debug info (prompt/response + token usage):
+
+```sh
+git-commit-message --debug "optional context"
+```
+
 - Select output language/locale (default: en-GB):
 
 ```sh
@@ -107,6 +119,7 @@ Notes:
 Environment:
 
 - `OPENAI_API_KEY`: required
+- `GIT_COMMIT_MESSAGE_PROVIDER`: optional (default: `openai`). `--provider` overrides this value.
 - `GIT_COMMIT_MESSAGE_MODEL` or `OPENAI_MODEL`: optional (default: `gpt-5-mini`)
 - `GIT_COMMIT_MESSAGE_LANGUAGE`: optional (default: `en-GB`)
 - `GIT_COMMIT_MESSAGE_CHUNK_TOKENS`: optional token budget per diff chunk (default: 0 = single chunk + summary; -1 disables summarisation)
