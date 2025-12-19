@@ -179,8 +179,14 @@ def get_provider(
 
         return GoogleGenAIProvider()
 
+    if name == "ollama":
+        # Local import to avoid import cycles: providers may import shared types from this module.
+        from ._ollama import OllamaProvider
+
+        return OllamaProvider()
+
     raise UnsupportedProviderError(
-        f"Unsupported provider: {name}. Supported providers: openai, google"
+        f"Unsupported provider: {name}. Supported providers: openai, google, ollama"
     )
 
 

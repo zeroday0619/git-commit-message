@@ -134,7 +134,30 @@ def _build_parser() -> ArgumentParser:
         ),
     )
 
+    parser.add_argument(
+        "--ollama-host",
+        dest="ollama_host",
+        default=None,
+        help=(
+            "Ollama host URL (default: http://localhost:11434). "
+            "You may also set OLLAMA_HOST."
+        ),
+    )
+
     return parser
+
+
+def _resolve_provider(
+    provider: str | None,
+    /,
+) -> str:
+    """Resolve the AI provider."""
+
+    return (
+        provider
+        or environ.get("GIT_COMMIT_MESSAGE_PROVIDER")
+        or "openai"
+    )
 
 
 def _run(
@@ -169,6 +192,8 @@ def _run(
         chunk_tokens = _env_chunk_tokens_default()
     if chunk_tokens is None:
         chunk_tokens = 0
+
+    provider: str = _resolve_provider(args.provider)
 
     result: CommitMessageResult | None = None
     try:
