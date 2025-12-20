@@ -16,7 +16,8 @@ from typing import Final, Protocol
 
 
 _DEFAULT_PROVIDER: Final[str] = "openai"
-_DEFAULT_MODEL: Final[str] = "gpt-5-mini"
+_DEFAULT_MODEL_OPENAI: Final[str] = "gpt-5-mini"
+_DEFAULT_MODEL_GOOGLE: Final[str] = "gemini-2.5-flash"
 _DEFAULT_LANGUAGE: Final[str] = "en-GB"
 
 
@@ -140,14 +141,17 @@ def _resolve_provider(
 
 def _resolve_model(
     model: str | None,
+    provider_name: str,
     /,
 ) -> str:
-    return (
-        model
-        or environ.get("GIT_COMMIT_MESSAGE_MODEL")
-        or environ.get("OPENAI_MODEL")
-        or _DEFAULT_MODEL
-    )
+    if provider_name == "google":
+        default_model = _DEFAULT_MODEL_GOOGLE
+        provider_model = None
+    else:
+        default_model = _DEFAULT_MODEL_OPENAI
+        provider_model = environ.get("OPENAI_MODEL")
+
+    return model or environ.get("GIT_COMMIT_MESSAGE_MODEL") or provider_model or default_model
 
 
 def _resolve_language(
@@ -169,8 +173,14 @@ def get_provider(
 
         return OpenAIResponsesProvider()
 
+    if name == "google":
+        # Local import to avoid import cycles: providers may import shared types from this module.
+        from ._gemini import GoogleGenAIProvider
+
+        return GoogleGenAIProvider()
+
     raise UnsupportedProviderError(
-        f"Unsupported provider: {name}. Supported providers: openai"
+        f"Unsupported provider: {name}. Supported providers: openai, google"
     )
 
 
@@ -451,10 +461,11 @@ def generate_commit_message(
     provider: str | None = None,
     /,
 ) -> str:
-    chosen_model = _resolve_model(model)
+    chosen_provider = _resolve_provider(provider)
+    chosen_model = _resolve_model(model, chosen_provider)
     chosen_language = _resolve_language(language)
 
-    llm = get_provider(provider)
+    llm = get_provider(chosen_provider)
 
     normalized_chunk_tokens = 0 if chunk_tokens is None else chunk_tokens
 
@@ -505,7 +516,7 @@ def generate_commit_message_with_info(
     /,
 ) -> CommitMessageResult:
     chosen_provider = _resolve_provider(provider)
-    chosen_model = _resolve_model(model)
+    chosen_model = _resolve_model(model, chosen_provider)
     chosen_language = _resolve_language(language)
 
     llm = get_provider(chosen_provider)

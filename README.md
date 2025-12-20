@@ -34,6 +34,12 @@ Set your API key (POSIX sh):
 export OPENAI_API_KEY="sk-..."
 ```
 
+Or for the Google provider:
+
+```sh
+export GOOGLE_API_KEY="..."
+```
+
 Note (fish): In fish, set it as follows.
 
 ```fish
@@ -65,6 +71,12 @@ git-commit-message --one-line "optional context"
 
 ```sh
 git-commit-message --provider openai "optional context"
+```
+
+- Select provider (Google Gemini via google-genai):
+
+```sh
+git-commit-message --provider google "optional context"
 ```
 
 - Limit subject length (default 72):
@@ -118,11 +130,17 @@ Notes:
 
 Environment:
 
-- `OPENAI_API_KEY`: required
+- `OPENAI_API_KEY`: required when provider is `openai`
+- `GOOGLE_API_KEY`: required when provider is `google`
 - `GIT_COMMIT_MESSAGE_PROVIDER`: optional (default: `openai`). `--provider` overrides this value.
-- `GIT_COMMIT_MESSAGE_MODEL` or `OPENAI_MODEL`: optional (default: `gpt-5-mini`)
+- `GIT_COMMIT_MESSAGE_MODEL`: optional model override (defaults: `openai` -> `gpt-5-mini`, `google` -> `gemini-2.5-flash`)
+- `OPENAI_MODEL`: optional OpenAI-only model override
 - `GIT_COMMIT_MESSAGE_LANGUAGE`: optional (default: `en-GB`)
 - `GIT_COMMIT_MESSAGE_CHUNK_TOKENS`: optional token budget per diff chunk (default: 0 = single chunk + summary; -1 disables summarisation)
+
+Notes:
+
+- If token counting fails for your provider while chunking, try `--chunk-tokens 0` (default) or `--chunk-tokens -1`.
 
 ## AI‑generated code notice
 
