@@ -144,6 +144,36 @@ def _resolve_ollama_host(
     )
 
 
+def _clean_response(raw_response: str) -> str:
+    """Strip reasoning/thinking tags and noisy wrappers some models return."""
+
+    cleaned = raw_response
+
+    # Drop full reasoning blocks
+    cleaned = re.sub(r"(?is)<think>.*?</think>", "", cleaned)
+    cleaned = re.sub(r"(?is)<thinking>.*?</thinking>", "", cleaned)
+    cleaned = re.sub(r"(?is)<thought>.*?</thought>", "", cleaned)
+    cleaned = re.sub(r"(?is)\[INST\].*?\[/INST\]", "", cleaned)
+    cleaned = re.sub(r"(?is)</?(?:reasoning|analysis|rationale)>", "", cleaned)
+
+    # Remove anything before a closing reasoning tag if it slipped through
+    cleaned = re.sub(r"(?is).*?</think>\s*", "", cleaned, count=1)
+    cleaned = re.sub(r"(?is).*?</thought>\s*", "", cleaned, count=1)
+    cleaned = re.sub(r"(?is).*?</thinking>\s*", "", cleaned, count=1)
+
+    # Remove standalone reasoning tag lines
+    cleaned = re.sub(r"(?im)^\s*</?think[^>]*>\s*$", "", cleaned)
+    cleaned = re.sub(r"(?im)^\s*</?thought[^>]*>\s*$", "", cleaned)
+    cleaned = re.sub(r"(?im)^\s*</?thinking[^>]*>\s*$", "", cleaned)
+
+    # Remove delimiter lines
+    cleaned = re.sub(r"(?m)^---+\s*$", "", cleaned)
+
+    # Collapse excessive blank lines and trim
+    cleaned = re.sub(r"\n{3,}", "\n\n", cleaned)
+    return cleaned.strip()
+
+
 class CommitMessageResult:
     """Hold the generated commit message and debugging information.
 
@@ -246,39 +276,7 @@ def _call_ollama(
     try:
         data = response.json()
         raw_response = data.get("response", "").strip()
-        
-        # Remove thinking/reasoning tags that some models include
-        # Pattern: </thought>, </think>, <thought>, </reasoning>, etc.
-        import re
-        
-        # Remove everything before and including </thought> or </think> tags
-        if "</thought>" in raw_response:
-            raw_response = raw_response.split("</thought>", 1)[-1].strip()
-        if "</think>" in raw_response:
-            raw_response = raw_response.split("</think>", 1)[-1].strip()
-        
-        # Remove <thought>...</thought> blocks
-        raw_response = re.sub(r'<thought>.*?</thought>', '', raw_response, flags=re.DOTALL | re.IGNORECASE)
-        
-        # Remove <think>...</think> blocks
-        raw_response = re.sub(r'<think>.*?</think>', '', raw_response, flags=re.DOTALL | re.IGNORECASE)
-        
-        # Remove <thinking>...</thinking> blocks
-        raw_response = re.sub(r'<thinking>.*?</thinking>', '', raw_response, flags=re.DOTALL | re.IGNORECASE)
-        
-        # Remove [INST]...[/INST] blocks (some models use this)
-        raw_response = re.sub(r'\[INST\].*?\[/INST\]', '', raw_response, flags=re.DOTALL | re.IGNORECASE)
-        
-        # Clean up any remaining XML-like tags related to reasoning
-        raw_response = re.sub(r'</?(?:reasoning|analysis|rationale)>', '', raw_response, flags=re.IGNORECASE)
-        
-        # Remove --- delimiter lines (often used in examples or by models)
-        raw_response = re.sub(r'^---+\s*$', '', raw_response, flags=re.MULTILINE)
-        
-        # Strip extra whitespace and clean up multiple blank lines
-        raw_response = re.sub(r'\n{3,}', '\n\n', raw_response.strip())
-        
-        return raw_response
+        return _clean_response(raw_response)
     except ValueError as exc:
         raise RuntimeError(
             f"Failed to parse Ollama response: {exc}"

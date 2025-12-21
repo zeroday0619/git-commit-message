@@ -18,6 +18,7 @@ from typing import Final, Protocol
 _DEFAULT_PROVIDER: Final[str] = "openai"
 _DEFAULT_MODEL_OPENAI: Final[str] = "gpt-5-mini"
 _DEFAULT_MODEL_GOOGLE: Final[str] = "gemini-2.5-flash"
+_DEFAULT_MODEL_OLLAMA: Final[str] = "ingu627/exaone4.0:1.2b"
 _DEFAULT_LANGUAGE: Final[str] = "en-GB"
 
 
@@ -147,6 +148,9 @@ def _resolve_model(
     if provider_name == "google":
         default_model = _DEFAULT_MODEL_GOOGLE
         provider_model = None
+    elif provider_name == "ollama":
+        default_model = _DEFAULT_MODEL_OLLAMA
+        provider_model = environ.get("OLLAMA_MODEL")
     else:
         default_model = _DEFAULT_MODEL_OPENAI
         provider_model = environ.get("OPENAI_MODEL")
