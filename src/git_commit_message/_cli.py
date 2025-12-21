@@ -87,7 +87,7 @@ def _build_parser() -> ArgumentParser:
         "--model",
         default=None,
         help=(
-            "Model name to use. If unspecified, uses GIT_COMMIT_MESSAGE_MODEL or a provider-specific default (openai: gpt-5-mini; google: gemini-2.5-flash)."
+            "Model name to use. If unspecified, uses GIT_COMMIT_MESSAGE_MODEL or a provider-specific default (openai: gpt-5-mini; google: gemini-2.5-flash, ollama: gpt-oss:20b)."
         ),
     )
 
