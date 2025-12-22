@@ -87,7 +87,7 @@ def _build_parser() -> ArgumentParser:
         "--model",
         default=None,
         help=(
-            "Model name to use. If unspecified, uses GIT_COMMIT_MESSAGE_MODEL or a provider-specific default (openai: gpt-5-mini; google: gemini-2.5-flash, ollama: gpt-oss:20b)."
+            "Model name to use. If unspecified, uses GIT_COMMIT_MESSAGE_MODEL or a provider-specific default (openai: gpt-5-mini; google: gemini-2.5-flash; ollama: gpt-oss:20b)."
         ),
     )
 
@@ -147,19 +147,6 @@ def _build_parser() -> ArgumentParser:
     return parser
 
 
-def _resolve_provider(
-    provider: str | None,
-    /,
-) -> str:
-    """Resolve the AI provider."""
-
-    return (
-        provider
-        or environ.get("GIT_COMMIT_MESSAGE_PROVIDER")
-        or "openai"
-    )
-
-
 def _run(
     args: Namespace,
     /,
@@ -192,8 +179,6 @@ def _run(
         chunk_tokens = _env_chunk_tokens_default()
     if chunk_tokens is None:
         chunk_tokens = 0
-
-    provider: str = _resolve_provider(args.provider)
 
     result: CommitMessageResult | None = None
     try:

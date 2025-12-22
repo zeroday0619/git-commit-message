@@ -183,12 +183,12 @@ Environment:
 - `OPENAI_API_KEY`: required when provider is `openai`
 - `GOOGLE_API_KEY`: required when provider is `google`
 - `GIT_COMMIT_MESSAGE_PROVIDER`: optional (default: `openai`). `--provider` overrides this value.
-- `GIT_COMMIT_MESSAGE_MODEL`: optional model override (defaults: `openai` -> `gpt-5-mini`, `google` -> `gemini-2.5-flash`, `ollama` -> `ingu627/exaone4.0:1.2b`)
+- `GIT_COMMIT_MESSAGE_MODEL`: optional model override (defaults: `openai` -> `gpt-5-mini`, `google` -> `gemini-2.5-flash`, `ollama` -> `gpt-oss:20b`)
 - `OPENAI_MODEL`: optional OpenAI-only model override
 - `OLLAMA_MODEL`: optional Ollama-only model override
 - `OLLAMA_HOST`: optional Ollama server URL (default: `http://localhost:11434`)
 - `GIT_COMMIT_MESSAGE_LANGUAGE`: optional (default: `en-GB`)
-- `GIT_COMMIT_MESSAGE_CHUNK_TOKENS`: optional token budget per diff chunk (supports all providers; default: 0 = single chunk + summary; -1 disables summarisation)
+- `GIT_COMMIT_MESSAGE_CHUNK_TOKENS`: optional token budget per diff chunk (default: 0 = single chunk + summary; -1 disables summarisation)
 
 Notes:
 
