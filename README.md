@@ -1,10 +1,15 @@
 # git-commit-message
 
-Staged changes -> GPT or Ollama commit message generator.
+Generate a commit message from your staged changes using OpenAI, Google Gemini, or Ollama.
 
 [![asciicast](https://asciinema.org/a/jk0phFqNnc5vaCiIZEYBwZOyN.svg)](https://asciinema.org/a/jk0phFqNnc5vaCiIZEYBwZOyN)
 
-## Install (PyPI)
+## Requirements
+
+- Python 3.13+
+- A Git repo with staged changes (`git add ...`)
+
+## Install
 
 Install the latest released version from PyPI:
 
@@ -28,52 +33,46 @@ Quick check:
 git-commit-message --help
 ```
 
-Set your API key (POSIX sh):
+## Setup
+
+### OpenAI
 
 ```sh
 export OPENAI_API_KEY="sk-..."
 ```
 
-Or for the Google provider:
+### Google Gemini
 
 ```sh
 export GOOGLE_API_KEY="..."
 ```
 
-Note (fish): In fish, set it as follows.
-
-```fish
-set -x OPENAI_API_KEY "sk-..."
-```
-
 ### Ollama (local models)
 
-If you prefer to use Ollama for local model inference without API costs:
-
-1. Install Ollama from https://ollama.ai
-2. Start the Ollama server:
+1. Install Ollama: https://ollama.ai
+2. Start the server:
 
 ```sh
 ollama serve
 ```
 
-3. Pull a model in another terminal:
+3. Pull a model:
 
 ```sh
 ollama pull mistral
 ```
 
-Then use git-commit-message with the `--provider ollama` option:
-
-```sh
-git-commit-message --provider ollama
-```
-
-Or set it as the default provider:
+Optional: set defaults:
 
 ```sh
 export GIT_COMMIT_MESSAGE_PROVIDER=ollama
 export OLLAMA_MODEL=mistral
+```
+
+Note (fish):
+
+```fish
+set -x OPENAI_API_KEY "sk-..."
 ```
 
 ## Install (editable)
@@ -84,118 +83,116 @@ python -m pip install -e .
 
 ## Usage
 
-- Print commit message only:
+Generate and print a commit message:
 
 ```sh
 git add -A
 git-commit-message "optional extra context about the change"
 ```
 
-- Force single-line subject only:
+Generate a single-line subject only:
 
 ```sh
 git-commit-message --one-line "optional context"
 ```
 
-- Select provider (default: openai):
+Select provider:
 
 ```sh
-git-commit-message --provider openai "optional context"
+# OpenAI (default)
+git-commit-message --provider openai
+
+# Google Gemini (via google-genai)
+git-commit-message --provider google
+
+# Ollama
+git-commit-message --provider ollama
 ```
 
-- Select provider (Google Gemini via google-genai):
+Commit immediately (optionally open editor):
 
 ```sh
-git-commit-message --provider google "optional context"
-```
-
-- Limit subject length (default 72):
-
-```sh
-git-commit-message --one-line --max-length 50 "optional context"
-```
-
-- Chunk long diffs by token budget (0 = single chunk + summary, -1 = disable chunking):
-
-```sh
-# force a single summary pass over the whole diff (default)
-git-commit-message --chunk-tokens 0 "optional context"
-
-# chunk the diff into ~4000-token pieces before summarising
-git-commit-message --chunk-tokens 4000 "optional context"
-
-# disable summarisation and use the legacy one-shot prompt
-git-commit-message --chunk-tokens -1 "optional context"
-```
-
-- Commit immediately with editor:
-
-```sh
+git-commit-message --commit "refactor parser for speed"
 git-commit-message --commit --edit "refactor parser for speed"
 ```
 
-- Print debug info (prompt/response + token usage):
+Limit subject length:
 
 ```sh
-git-commit-message --debug "optional context"
+git-commit-message --one-line --max-length 50
 ```
 
-- Select output language/locale (default: en-GB):
+Chunk/summarise long diffs by token budget:
 
 ```sh
-# American English
-git-commit-message --language en-US "optional context"
+# force a single summary pass over the whole diff (default)
+git-commit-message --chunk-tokens 0
 
-# Korean
+# chunk the diff into ~4000-token pieces before summarising
+git-commit-message --chunk-tokens 4000
+
+# disable summarisation and use the legacy one-shot prompt
+git-commit-message --chunk-tokens -1
+```
+
+Select output language/locale (IETF language tag):
+
+```sh
+git-commit-message --language en-US
 git-commit-message --language ko-KR
-
-# Japanese
 git-commit-message --language ja-JP
 ```
 
-- Select AI provider (OpenAI or Ollama):
+Print debug info:
 
 ```sh
-# Use Ollama (requires running `ollama serve`)
-git-commit-message --provider ollama "optional context"
-
-# Use OpenAI (default)
-git-commit-message --provider openai "optional context"
-
-# Or set via environment variable (default: openai)
-export GIT_COMMIT_MESSAGE_PROVIDER=ollama
-git-commit-message "optional context"
+git-commit-message --debug
 ```
 
-- Configure Ollama host (if running on a different machine):
+Configure Ollama host (if running on a different machine):
 
 ```sh
-git-commit-message --provider ollama --ollama-host http://192.168.1.100:11434
+git-commit-message --provider ollama --host http://192.168.1.100:11434
 ```
 
-Notes:
+## Options
 
-- The model is instructed to write using the selected language/locale.
-- In multi-line mode, the only allowed label ("Rationale:") is also translated into the target language.
+- `--provider {openai,google,ollama}`: provider to use (default: `openai`)
+- `--model MODEL`: model override (provider-specific)
+- `--language TAG`: output language/locale (default: `en-GB`)
+- `--one-line`: output subject only
+- `--max-length N`: max subject length (default: 72)
+- `--chunk-tokens N`: token budget per diff chunk (`0` = single summary pass, `-1` disables summarisation)
+- `--debug`: print request/response details
+- `--commit`: run `git commit -m <message>`
+- `--edit`: with `--commit`, open editor for final message
+- `--host URL`: host URL for providers like Ollama (default: `http://localhost:11434`)
 
-Environment:
+## Environment variables
 
-- `OPENAI_API_KEY`: required when provider is `openai`
-- `GOOGLE_API_KEY`: required when provider is `google`
-- `GIT_COMMIT_MESSAGE_PROVIDER`: optional (default: `openai`). `--provider` overrides this value.
-- `GIT_COMMIT_MESSAGE_MODEL`: optional model override (defaults: `openai` -> `gpt-5-mini`, `google` -> `gemini-2.5-flash`, `ollama` -> `gpt-oss:20b`)
-- `OPENAI_MODEL`: optional OpenAI-only model override
-- `OLLAMA_MODEL`: optional Ollama-only model override
-- `OLLAMA_HOST`: optional Ollama server URL (default: `http://localhost:11434`)
-- `GIT_COMMIT_MESSAGE_LANGUAGE`: optional (default: `en-GB`)
-- `GIT_COMMIT_MESSAGE_CHUNK_TOKENS`: optional token budget per diff chunk (default: 0 = single chunk + summary; -1 disables summarisation)
+Required:
 
-Notes:
+- `OPENAI_API_KEY`: when provider is `openai`
+- `GOOGLE_API_KEY`: when provider is `google`
 
-- If token counting fails for your provider while chunking, try `--chunk-tokens 0` (default) or `--chunk-tokens -1`.
+Optional:
 
-## AI‑generated code notice
+- `GIT_COMMIT_MESSAGE_PROVIDER`: default provider (`openai` by default). `--provider` overrides this.
+- `GIT_COMMIT_MESSAGE_MODEL`: model override for any provider. `--model` overrides this.
+- `OPENAI_MODEL`: OpenAI-only model override (used if `--model`/`GIT_COMMIT_MESSAGE_MODEL` are not set)
+- `OLLAMA_MODEL`: Ollama-only model override (used if `--model`/`GIT_COMMIT_MESSAGE_MODEL` are not set)
+- `OLLAMA_HOST`: Ollama server URL (default: `http://localhost:11434`)
+- `GIT_COMMIT_MESSAGE_LANGUAGE`: default language/locale (default: `en-GB`)
+- `GIT_COMMIT_MESSAGE_CHUNK_TOKENS`: default chunk token budget (default: `0`)
+
+Default models (if not overridden):
+
+- OpenAI: `gpt-5-mini`
+- Google: `gemini-2.5-flash`
+- Ollama: `gpt-oss:20b`
+
+## AI-generated code notice
 
 Parts of this project were created with assistance from AI tools (e.g. large language models).
-All AI‑assisted contributions were reviewed and adapted by maintainers before inclusion.
+All AI-assisted contributions were reviewed and adapted by maintainers before inclusion.
 If you need provenance for specific changes, please refer to the Git history and commit messages.

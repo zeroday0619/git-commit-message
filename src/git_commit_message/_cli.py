@@ -27,6 +27,38 @@ from ._llm import (
 )
 
 
+class CliArgs(Namespace):
+    __slots__ = (
+        "description",
+        "commit",
+        "edit",
+        "provider",
+        "model",
+        "language",
+        "debug",
+        "one_line",
+        "max_length",
+        "chunk_tokens",
+        "host",
+    )
+
+    def __init__(
+        self,
+        /,
+    ) -> None:
+        self.description: str | None = None
+        self.commit: bool = False
+        self.edit: bool = False
+        self.provider: str | None = None
+        self.model: str | None = None
+        self.language: str | None = None
+        self.debug: bool = False
+        self.one_line: bool = False
+        self.max_length: int | None = None
+        self.chunk_tokens: int | None = None
+        self.host: str | None = None
+
+
 def _env_chunk_tokens_default() -> int | None:
     """Return chunk token default from env if valid, else None."""
 
@@ -148,7 +180,7 @@ def _build_parser() -> ArgumentParser:
 
 
 def _run(
-    args: Namespace,
+    args: CliArgs,
     /,
 ) -> int:
     """Main execution logic.
@@ -187,12 +219,12 @@ def _run(
                 diff_text,
                 hint,
                 args.model,
-                getattr(args, "one_line", False),
-                getattr(args, "max_length", None),
-                getattr(args, "language", None),
+                args.one_line,
+                args.max_length,
+                args.language,
                 chunk_tokens,
-                getattr(args, "provider", None),
-                getattr(args, "host", None),
+                args.provider,
+                args.host,
             )
             message = result.message
         else:
@@ -200,12 +232,12 @@ def _run(
                 diff_text,
                 hint,
                 args.model,
-                getattr(args, "one_line", False),
-                getattr(args, "max_length", None),
-                getattr(args, "language", None),
+                args.one_line,
+                args.max_length,
+                args.language,
                 chunk_tokens,
-                getattr(args, "provider", None),
-                getattr(args, "host", None),
+                args.provider,
+                args.host,
             )
     except UnsupportedProviderError as exc:
         print(str(exc), file=stderr)
@@ -215,7 +247,7 @@ def _run(
         return 3
 
     # Option: force single-line message
-    if getattr(args, "one_line", False):
+    if args.one_line:
         # Use the first non-empty line only
         for line in (ln.strip() for ln in message.splitlines()):
             if line:
@@ -230,7 +262,7 @@ def _run(
             print(f"==== {result.provider} Usage ====")
             print(f"provider: {result.provider}")
             print(f"model: {result.model}")
-            print(f"response_id: {getattr(result, 'response_id', '(n/a)')}")
+            print(f"response_id: {result.response_id or '(n/a)'}")
             if result.total_tokens is not None:
                 print(
                     f"tokens: prompt={result.prompt_tokens} completion={result.completion_tokens} total={result.total_tokens}"
@@ -252,7 +284,7 @@ def _run(
         print(f"==== {result.provider} Usage ====")
         print(f"provider: {result.provider}")
         print(f"model: {result.model}")
-        print(f"response_id: {getattr(result, 'response_id', '(n/a)')}")
+        print(f"response_id: {result.response_id or '(n/a)'}")
         if result.total_tokens is not None:
             print(
                 f"tokens: prompt={result.prompt_tokens} completion={result.completion_tokens} total={result.total_tokens}"
@@ -281,7 +313,8 @@ def main() -> None:
     """
 
     parser: Final[ArgumentParser] = _build_parser()
-    args: Namespace = parser.parse_args()
+    args = CliArgs()
+    parser.parse_args(namespace=args)
 
     if args.edit and not args.commit:
         print("'--edit' must be used together with '--commit'.", file=stderr)

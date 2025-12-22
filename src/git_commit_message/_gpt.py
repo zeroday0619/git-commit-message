@@ -9,6 +9,8 @@ from __future__ import annotations
 from openai import OpenAI
 from openai.types.responses import Response
 from os import environ
+from typing import ClassVar
+
 from tiktoken import Encoding, encoding_for_model, get_encoding
 from ._llm import LLMTextResult, LLMUsage
 
@@ -24,7 +26,11 @@ def _encoding_for_model(
 
 
 class OpenAIResponsesProvider:
-    name = "openai"
+    __slots__ = (
+        "_client",
+    )
+
+    name: ClassVar[str] = "openai"
 
     def __init__(
         self,

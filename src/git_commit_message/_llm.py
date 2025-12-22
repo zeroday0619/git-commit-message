@@ -12,7 +12,7 @@ from __future__ import annotations
 
 from babel import Locale
 from os import environ
-from typing import Final, Protocol
+from typing import ClassVar, Final, Protocol
 
 
 _DEFAULT_PROVIDER: Final[str] = "openai"
@@ -23,6 +23,8 @@ _DEFAULT_LANGUAGE: Final[str] = "en-GB"
 
 
 class UnsupportedProviderError(RuntimeError):
+    __slots__ = ()
+
     pass
 
 
@@ -67,7 +69,9 @@ class LLMTextResult:
 
 
 class CommitMessageProvider(Protocol):
-    name: str
+    __slots__ = ()
+
+    name: ClassVar[str]
 
     def generate_text(
         self,

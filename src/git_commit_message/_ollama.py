@@ -8,7 +8,7 @@ Mirrors the Gemini provider structure: a single provider class that exposes
 from __future__ import annotations
 
 from os import environ
-from typing import Final
+from typing import ClassVar, Final
 
 from ollama import Client, ResponseError
 from tiktoken import Encoding, get_encoding
@@ -19,7 +19,10 @@ from ._llm import LLMTextResult, LLMUsage
 _DEFAULT_OLLAMA_HOST: Final[str] = "http://localhost:11434"
 
 
-def _resolve_ollama_host(host: str | None) -> str:
+def _resolve_ollama_host(
+    host: str | None,
+    /,
+) -> str:
     """Resolve the Ollama host URL from arg, env, or default."""
 
     return host or environ.get("OLLAMA_HOST") or _DEFAULT_OLLAMA_HOST
@@ -37,9 +40,19 @@ def _get_encoding() -> Encoding:
 class OllamaProvider:
     """Ollama provider implementation for the LLM protocol."""
 
-    name: str = "ollama"
+    __slots__ = (
+        "_host",
+        "_client",
+    )
 
-    def __init__(self, /, *, host: str | None = None) -> None:
+    name: ClassVar[str] = "ollama"
+
+    def __init__(
+        self,
+        /,
+        *,
+        host: str | None = None,
+    ) -> None:
         self._host = _resolve_ollama_host(host)
         self._client = Client(host=self._host)
 

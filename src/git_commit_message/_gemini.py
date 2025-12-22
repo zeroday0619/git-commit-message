@@ -7,6 +7,7 @@ Provider-agnostic orchestration/prompt logic lives in `_llm.py`.
 from __future__ import annotations
 
 from os import environ
+from typing import ClassVar
 
 from google import genai
 from google.genai import types
@@ -15,7 +16,11 @@ from ._llm import LLMTextResult, LLMUsage
 
 
 class GoogleGenAIProvider:
-    name = "google"
+    __slots__ = (
+        "_client",
+    )
+
+    name: ClassVar[str] = "google"
 
     def __init__(
         self,
