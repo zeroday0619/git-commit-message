@@ -168,6 +168,8 @@ def _resolve_language(
 def get_provider(
     provider: str | None,
     /,
+    *,
+    host: str | None = None,
 ) -> CommitMessageProvider:
     name = _resolve_provider(provider)
 
@@ -187,7 +189,7 @@ def get_provider(
         # Local import to avoid import cycles: providers may import shared types from this module.
         from ._ollama import OllamaProvider
 
-        return OllamaProvider()
+        return OllamaProvider(host=host)
 
     raise UnsupportedProviderError(
         f"Unsupported provider: {name}. Supported providers: openai, google, ollama"
@@ -469,13 +471,14 @@ def generate_commit_message(
     language: str | None = None,
     chunk_tokens: int | None = 0,
     provider: str | None = None,
+    host: str | None = None,
     /,
 ) -> str:
     chosen_provider = _resolve_provider(provider)
     chosen_model = _resolve_model(model, chosen_provider)
     chosen_language = _resolve_language(language)
 
-    llm = get_provider(chosen_provider)
+    llm = get_provider(chosen_provider, host=host)
 
     normalized_chunk_tokens = 0 if chunk_tokens is None else chunk_tokens
 
@@ -523,13 +526,14 @@ def generate_commit_message_with_info(
     language: str | None = None,
     chunk_tokens: int | None = 0,
     provider: str | None = None,
+    host: str | None = None,
     /,
 ) -> CommitMessageResult:
     chosen_provider = _resolve_provider(provider)
     chosen_model = _resolve_model(model, chosen_provider)
     chosen_language = _resolve_language(language)
 
-    llm = get_provider(chosen_provider)
+    llm = get_provider(chosen_provider, host=host)
 
     normalized_chunk_tokens = 0 if chunk_tokens is None else chunk_tokens
 

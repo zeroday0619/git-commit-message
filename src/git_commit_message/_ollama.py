@@ -27,26 +27,28 @@ def _resolve_ollama_host(host: str | None) -> str:
 
 
 def _clean_response(raw_response: str) -> str:
-    """Strip reasoning/thinking tags and noisy wrappers some models return."""
+    """Strip leading reasoning/thinking wrappers some models return.
+
+    Only removes reasoning blocks that appear at the START of the response.
+    Content inside the actual commit message body is preserved.
+    """
 
     cleaned = raw_response
 
-    cleaned = re.sub(r"(?is)<think>.*?</think>", "", cleaned)
-    cleaned = re.sub(r"(?is)<thinking>.*?</thinking>", "", cleaned)
-    cleaned = re.sub(r"(?is)<thought>.*?</thought>", "", cleaned)
-    cleaned = re.sub(r"(?is)\[INST\].*?\[/INST\]", "", cleaned)
-    cleaned = re.sub(r"(?is)</?(?:reasoning|analysis|rationale)>", "", cleaned)
+    # Remove leading reasoning blocks only (at the start of response).
+    # These patterns match blocks that start from the beginning.
+    cleaned = re.sub(r"^\s*<think>.*?</think>\s*", "", cleaned, flags=re.IGNORECASE | re.DOTALL)
+    cleaned = re.sub(r"^\s*<thinking>.*?</thinking>\s*", "", cleaned, flags=re.IGNORECASE | re.DOTALL)
+    cleaned = re.sub(r"^\s*<thought>.*?</thought>\s*", "", cleaned, flags=re.IGNORECASE | re.DOTALL)
+    cleaned = re.sub(r"^\s*\[INST\].*?\[/INST\]\s*", "", cleaned, flags=re.IGNORECASE | re.DOTALL)
 
-    cleaned = re.sub(r"(?is).*?</think>\s*", "", cleaned, count=1)
-    cleaned = re.sub(r"(?is).*?</thought>\s*", "", cleaned, count=1)
-    cleaned = re.sub(r"(?is).*?</thinking>\s*", "", cleaned, count=1)
+    # Remove standalone opening/closing reasoning tags only if they appear on their own line at start
+    cleaned = re.sub(r"^\s*</?(?:think|thinking|thought|reasoning|analysis|rationale)>\s*\n?", "", cleaned, flags=re.IGNORECASE | re.MULTILINE)
 
-    cleaned = re.sub(r"(?im)^\s*</?think[^>]*>\s*$", "", cleaned)
-    cleaned = re.sub(r"(?im)^\s*</?thought[^>]*>\s*$", "", cleaned)
-    cleaned = re.sub(r"(?im)^\s*</?thinking[^>]*>\s*$", "", cleaned)
+    # Remove leading horizontal rules often used as separators
+    cleaned = re.sub(r"^\s*---+\s*\n", "", cleaned, flags=re.MULTILINE)
 
-    cleaned = re.sub(r"(?m)^---+\s*$", "", cleaned)
-
+    # Normalize excessive blank lines
     cleaned = re.sub(r"\n{3,}", "\n\n", cleaned)
     return cleaned.strip()
 

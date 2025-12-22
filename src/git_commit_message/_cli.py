@@ -135,12 +135,12 @@ def _build_parser() -> ArgumentParser:
     )
 
     parser.add_argument(
-        "--ollama-host",
-        dest="ollama_host",
+        "--host",
+        dest="host",
         default=None,
         help=(
-            "Ollama host URL (default: http://localhost:11434). "
-            "You may also set OLLAMA_HOST."
+            "Host URL for API providers like Ollama (default: http://localhost:11434). "
+            "You may also set OLLAMA_HOST for Ollama."
         ),
     )
 
@@ -192,6 +192,7 @@ def _run(
                 getattr(args, "language", None),
                 chunk_tokens,
                 getattr(args, "provider", None),
+                getattr(args, "host", None),
             )
             message = result.message
         else:
@@ -204,6 +205,7 @@ def _run(
                 getattr(args, "language", None),
                 chunk_tokens,
                 getattr(args, "provider", None),
+                getattr(args, "host", None),
             )
     except UnsupportedProviderError as exc:
         print(str(exc), file=stderr)
