@@ -87,7 +87,7 @@ def _build_parser() -> ArgumentParser:
         "--model",
         default=None,
         help=(
-            "Model name to use. If unspecified, uses GIT_COMMIT_MESSAGE_MODEL or a provider-specific default (openai: gpt-5-mini; google: gemini-2.5-flash)."
+            "Model name to use. If unspecified, uses GIT_COMMIT_MESSAGE_MODEL or a provider-specific default (openai: gpt-5-mini; google: gemini-2.5-flash; ollama: gpt-oss:20b)."
         ),
     )
 
@@ -131,6 +131,16 @@ def _build_parser() -> ArgumentParser:
             "Target token budget per diff chunk. "
             "0 forces a single chunk with summarisation; -1 disables summarisation (legacy one-shot). "
             "If omitted, uses GIT_COMMIT_MESSAGE_CHUNK_TOKENS when set (default: 0)."
+        ),
+    )
+
+    parser.add_argument(
+        "--host",
+        dest="host",
+        default=None,
+        help=(
+            "Host URL for API providers like Ollama (default: http://localhost:11434). "
+            "You may also set OLLAMA_HOST for Ollama."
         ),
     )
 
@@ -182,6 +192,7 @@ def _run(
                 getattr(args, "language", None),
                 chunk_tokens,
                 getattr(args, "provider", None),
+                getattr(args, "host", None),
             )
             message = result.message
         else:
@@ -194,6 +205,7 @@ def _run(
                 getattr(args, "language", None),
                 chunk_tokens,
                 getattr(args, "provider", None),
+                getattr(args, "host", None),
             )
     except UnsupportedProviderError as exc:
         print(str(exc), file=stderr)

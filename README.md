@@ -1,6 +1,6 @@
 # git-commit-message
 
-Staged changes -> GPT commit message generator.
+Staged changes -> GPT or Ollama commit message generator.
 
 [![asciicast](https://asciinema.org/a/jk0phFqNnc5vaCiIZEYBwZOyN.svg)](https://asciinema.org/a/jk0phFqNnc5vaCiIZEYBwZOyN)
 
@@ -44,6 +44,36 @@ Note (fish): In fish, set it as follows.
 
 ```fish
 set -x OPENAI_API_KEY "sk-..."
+```
+
+### Ollama (local models)
+
+If you prefer to use Ollama for local model inference without API costs:
+
+1. Install Ollama from https://ollama.ai
+2. Start the Ollama server:
+
+```sh
+ollama serve
+```
+
+3. Pull a model in another terminal:
+
+```sh
+ollama pull mistral
+```
+
+Then use git-commit-message with the `--provider ollama` option:
+
+```sh
+git-commit-message --provider ollama
+```
+
+Or set it as the default provider:
+
+```sh
+export GIT_COMMIT_MESSAGE_PROVIDER=ollama
+export OLLAMA_MODEL=mistral
 ```
 
 ## Install (editable)
@@ -123,6 +153,26 @@ git-commit-message --language ko-KR
 git-commit-message --language ja-JP
 ```
 
+- Select AI provider (OpenAI or Ollama):
+
+```sh
+# Use Ollama (requires running `ollama serve`)
+git-commit-message --provider ollama "optional context"
+
+# Use OpenAI (default)
+git-commit-message --provider openai "optional context"
+
+# Or set via environment variable (default: openai)
+export GIT_COMMIT_MESSAGE_PROVIDER=ollama
+git-commit-message "optional context"
+```
+
+- Configure Ollama host (if running on a different machine):
+
+```sh
+git-commit-message --provider ollama --ollama-host http://192.168.1.100:11434
+```
+
 Notes:
 
 - The model is instructed to write using the selected language/locale.
@@ -133,8 +183,10 @@ Environment:
 - `OPENAI_API_KEY`: required when provider is `openai`
 - `GOOGLE_API_KEY`: required when provider is `google`
 - `GIT_COMMIT_MESSAGE_PROVIDER`: optional (default: `openai`). `--provider` overrides this value.
-- `GIT_COMMIT_MESSAGE_MODEL`: optional model override (defaults: `openai` -> `gpt-5-mini`, `google` -> `gemini-2.5-flash`)
+- `GIT_COMMIT_MESSAGE_MODEL`: optional model override (defaults: `openai` -> `gpt-5-mini`, `google` -> `gemini-2.5-flash`, `ollama` -> `gpt-oss:20b`)
 - `OPENAI_MODEL`: optional OpenAI-only model override
+- `OLLAMA_MODEL`: optional Ollama-only model override
+- `OLLAMA_HOST`: optional Ollama server URL (default: `http://localhost:11434`)
 - `GIT_COMMIT_MESSAGE_LANGUAGE`: optional (default: `en-GB`)
 - `GIT_COMMIT_MESSAGE_CHUNK_TOKENS`: optional token budget per diff chunk (default: 0 = single chunk + summary; -1 disables summarisation)
 
