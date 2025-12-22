@@ -10,8 +10,7 @@ from __future__ import annotations
 from os import environ
 from typing import Final
 
-import re
-import requests
+from ollama import Client, ResponseError
 from tiktoken import Encoding, get_encoding
 
 from ._llm import LLMTextResult, LLMUsage
@@ -24,59 +23,6 @@ def _resolve_ollama_host(host: str | None) -> str:
     """Resolve the Ollama host URL from arg, env, or default."""
 
     return host or environ.get("OLLAMA_HOST") or _DEFAULT_OLLAMA_HOST
-
-
-def _clean_response(raw_response: str) -> str:
-    """Strip leading reasoning/thinking wrappers some models return.
-
-    Only removes reasoning blocks that appear at the START of the response.
-    Content inside the actual commit message body is preserved.
-    """
-
-    cleaned = raw_response
-
-    # Remove leading reasoning blocks only (at the start of response).
-    # These patterns match blocks that start from the beginning.
-    cleaned = re.sub(r"^\s*<think>.*?</think>\s*", "", cleaned, flags=re.IGNORECASE | re.DOTALL)
-    cleaned = re.sub(r"^\s*<thinking>.*?</thinking>\s*", "", cleaned, flags=re.IGNORECASE | re.DOTALL)
-    cleaned = re.sub(r"^\s*<thought>.*?</thought>\s*", "", cleaned, flags=re.IGNORECASE | re.DOTALL)
-    cleaned = re.sub(r"^\s*\[INST\].*?\[/INST\]\s*", "", cleaned, flags=re.IGNORECASE | re.DOTALL)
-
-    # Remove standalone opening/closing reasoning tags only if they appear on their own line at start
-    cleaned = re.sub(r"^\s*</?(?:think|thinking|thought|reasoning|analysis|rationale)>\s*\n?", "", cleaned, flags=re.IGNORECASE | re.MULTILINE)
-
-    # Remove leading horizontal rules often used as separators
-    cleaned = re.sub(r"^\s*---+\s*\n", "", cleaned, flags=re.MULTILINE)
-
-    # Normalize excessive blank lines
-    cleaned = re.sub(r"\n{3,}", "\n\n", cleaned)
-    return cleaned.strip()
-
-
-def _call_ollama(*, prompt: str, model: str, host: str) -> str:
-    """Call Ollama /api/generate and return cleaned text."""
-
-    url = f"{host}/api/generate"
-    payload = {
-        "model": model,
-        "prompt": prompt,
-        "stream": False,
-    }
-
-    try:
-        response = requests.post(url, json=payload, timeout=300)
-        response.raise_for_status()
-    except requests.RequestException as exc:
-        raise RuntimeError(
-            f"Failed to connect to Ollama at {host}. Make sure Ollama is running: {exc}"
-        ) from exc
-
-    try:
-        data = response.json()
-        raw_response = data.get("response", "").strip()
-        return _clean_response(raw_response)
-    except ValueError as exc:
-        raise RuntimeError(f"Failed to parse Ollama response: {exc}") from exc
 
 
 def _get_encoding() -> Encoding:
@@ -95,6 +41,7 @@ class OllamaProvider:
 
     def __init__(self, /, *, host: str | None = None) -> None:
         self._host = _resolve_ollama_host(host)
+        self._client = Client(host=self._host)
 
     def generate_text(
         self,
@@ -106,20 +53,43 @@ class OllamaProvider:
     ) -> LLMTextResult:
         """Generate text using Ollama (non-streaming)."""
 
-        full_prompt = f"{instructions}\n\n{user_text}"
-        response_text = _call_ollama(
-            prompt=full_prompt,
-            model=model,
-            host=self._host,
-        )
+        messages = [
+            {"role": "system", "content": instructions},
+            {"role": "user", "content": user_text},
+        ]
+
+        try:
+            response = self._client.chat(model=model, messages=messages)
+        except ResponseError as exc:
+            raise RuntimeError(
+                f"Ollama API error: {exc}"
+            ) from exc
+        except Exception as exc:
+            raise RuntimeError(
+                f"Failed to connect to Ollama at {self._host}. Make sure Ollama is running: {exc}"
+            ) from exc
+
+        response_text = response.message.content or ""
+
+        # Extract token usage if available
+        prompt_tokens: int | None = None
+        completion_tokens: int | None = None
+        total_tokens: int | None = None
+
+        if hasattr(response, "prompt_eval_count") and response.prompt_eval_count:
+            prompt_tokens = response.prompt_eval_count
+        if hasattr(response, "eval_count") and response.eval_count:
+            completion_tokens = response.eval_count
+        if prompt_tokens is not None and completion_tokens is not None:
+            total_tokens = prompt_tokens + completion_tokens
 
         return LLMTextResult(
-            text=response_text,
+            text=response_text.strip(),
             response_id=None,
             usage=LLMUsage(
-                prompt_tokens=None,
-                completion_tokens=None,
-                total_tokens=None,
+                prompt_tokens=prompt_tokens,
+                completion_tokens=completion_tokens,
+                total_tokens=total_tokens,
             ),
         )
 
