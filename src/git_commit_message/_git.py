@@ -23,22 +23,35 @@ def _get_empty_tree_hash(
     empty tree object ID for the current repo.
     """
 
-    completed = run(
-        [
-            "git",
-            "hash-object",
-            "-t",
-            "tree",
-            "--stdin",
-        ],
-        cwd=str(cwd),
-        check=True,
-        input=b"",
-        capture_output=True,
-    )
+    try:
+        completed = run(
+            [
+                "git",
+                "hash-object",
+                "-t",
+                "tree",
+                "--stdin",
+            ],
+            cwd=str(cwd),
+            check=True,
+            input=b"",
+            capture_output=True,
+        )
+    except CalledProcessError as exc:
+        stderr_text = (exc.stderr or b"").decode(errors="replace").strip()
+        suffix = f"\nGit stderr: {stderr_text}" if stderr_text else ""
+        raise RuntimeError(
+            f"Failed to compute empty tree hash (git exited with {exc.returncode}).{suffix}"
+        ) from exc
+    except OSError as exc:
+        raise RuntimeError(
+            f"Failed to run git to compute empty tree hash: {exc}"
+        ) from exc
     oid = completed.stdout.decode().strip()
     if not oid:
-        raise RuntimeError("Failed to compute empty tree hash.")
+        raise RuntimeError(
+            "Failed to compute empty tree hash: git returned an empty object id."
+        )
     return oid
 
 
@@ -138,7 +151,22 @@ def get_staged_diff(
     *,
     base_ref: str | None = None,
 ) -> str:
-    """Return the staged changes as diff text."""
+    """Return the staged changes as diff text.
+
+    Parameters
+    ----------
+    cwd
+        Git working directory.
+    base_ref
+        Optional Git reference (e.g., branch name, tag, or commit hash) to
+        diff against. When provided, the staged changes are shown relative to
+        this reference instead of the default ``HEAD``-based index diff.
+
+    Returns
+    -------
+    str
+        Unified diff text for the staged changes.
+    """
 
     cmd: list[str] = [
         "git",

@@ -178,7 +178,7 @@ git-commit-message --provider ollama --host http://192.168.1.100:11434
 - `--chunk-tokens N`: token budget per diff chunk (`0` = single summary pass, `-1` disables summarisation)
 - `--debug`: print request/response details
 - `--commit`: run `git commit -m <message>`
-- `--amend`: generate a message suitable for amending the previous commit (diff is from the amended commit's parent to the staged index; works even if nothing is staged)
+- `--amend`: generate a message suitable for amending the previous commit (diff is from the amended commit's parent to the staged index; if nothing is staged, shows the diff of the HEAD commit itself)
 - `--edit`: with `--commit`, open editor for final message
 - `--host URL`: host URL for providers like Ollama (default: `http://localhost:11434`)
 
