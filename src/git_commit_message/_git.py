@@ -21,6 +21,11 @@ def _get_empty_tree_hash(
     Do not hard-code the SHA, because repositories may use different
     hash algorithms (e.g. SHA-1 vs SHA-256). We ask Git to compute the
     empty tree object ID for the current repo.
+
+    Returns
+    -------
+    str
+        The empty tree object ID for the current repository.
     """
 
     try:
@@ -50,7 +55,7 @@ def _get_empty_tree_hash(
     oid = completed.stdout.decode().strip()
     if not oid:
         raise RuntimeError(
-            "Failed to compute empty tree hash: git returned an empty object id."
+            "Failed to compute empty tree hash: git returned an empty object ID."
         )
     return oid
 
@@ -137,12 +142,24 @@ def resolve_amend_base_ref(
 ) -> str:
     """Resolve the base ref for an amend diff.
 
+    Parameters
+    ----------
+    cwd
+        Repository directory in which to run Git.
+
     Notes
     -----
     The amended commit keeps the same parent as the current HEAD commit.
 
     - If HEAD has a parent, base is ``HEAD^``.
     - If HEAD is a root commit (no parent), base is the empty tree.
+
+    Returns
+    -------
+    str
+        The base reference for the amend diff: either ``HEAD^`` (when the
+        current ``HEAD`` commit has a parent) or the empty tree object ID
+        (when ``HEAD`` is a root commit).
     """
 
     completed = run(
@@ -171,8 +188,8 @@ def get_staged_diff(
     base_ref
         Optional Git reference or tree object ID (e.g., branch name, tag,
         commit hash, or the empty tree hash) to diff against. When provided,
-        the staged changes are shown relative to this value instead of the
-        default ``HEAD``-based index diff.
+        the diff shows changes from ``base_ref`` to the staged index, instead
+        of changes from ``HEAD`` to the staged index.
 
     Returns
     -------
