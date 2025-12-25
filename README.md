@@ -116,6 +116,19 @@ git-commit-message --commit "refactor parser for speed"
 git-commit-message --commit --edit "refactor parser for speed"
 ```
 
+Amend the previous commit:
+
+```sh
+# print only (useful for pasting into a GUI editor)
+git-commit-message --amend "optional context"
+
+# amend immediately
+git-commit-message --commit --amend "optional context"
+
+# amend immediately, but open editor for final tweaks
+git-commit-message --commit --amend --edit "optional context"
+```
+
 Limit subject length:
 
 ```sh
@@ -165,6 +178,7 @@ git-commit-message --provider ollama --host http://192.168.1.100:11434
 - `--chunk-tokens N`: token budget per diff chunk (`0` = single summary pass, `-1` disables summarisation)
 - `--debug`: print request/response details
 - `--commit`: run `git commit -m <message>`
+- `--amend`: generate a message suitable for amending the previous commit (diff is from the amended commit's parent to the staged index; works even if nothing is staged)
 - `--edit`: with `--commit`, open editor for final message
 - `--host URL`: host URL for providers like Ollama (default: `http://localhost:11434`)
 

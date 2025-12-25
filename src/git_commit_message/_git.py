@@ -10,6 +10,38 @@ from pathlib import Path
 from subprocess import CalledProcessError, check_call, check_output, run
 
 
+def _get_empty_tree_hash(
+    cwd: Path,
+    /,
+) -> str:
+    """Return the empty tree hash for this repository.
+
+    Notes
+    -----
+    Do not hard-code the SHA, because repositories may use different
+    hash algorithms (e.g. SHA-1 vs SHA-256). We ask Git to compute the
+    empty tree object ID for the current repo.
+    """
+
+    completed = run(
+        [
+            "git",
+            "hash-object",
+            "-t",
+            "tree",
+            "--stdin",
+        ],
+        cwd=str(cwd),
+        check=True,
+        input=b"",
+        capture_output=True,
+    )
+    oid = completed.stdout.decode().strip()
+    if not oid:
+        raise RuntimeError("Failed to compute empty tree hash.")
+    return oid
+
+
 def get_repo_root(
     cwd: Path | None = None,
     /,
@@ -60,23 +92,66 @@ def has_staged_changes(
         return True
 
 
-def get_staged_diff(
+def has_head_commit(
+    cwd: Path,
+    /,
+) -> bool:
+    """Return True if the repository has at least one commit (HEAD exists)."""
+
+    completed = run(
+        ["git", "rev-parse", "--verify", "HEAD"],
+        cwd=str(cwd),
+        check=False,
+        capture_output=True,
+    )
+    return completed.returncode == 0
+
+
+def resolve_amend_base_ref(
     cwd: Path,
     /,
 ) -> str:
+    """Resolve the base ref for an amend diff.
+
+    Notes
+    -----
+    The amended commit keeps the same parent as the current HEAD commit.
+
+    - If HEAD has a parent, base is ``HEAD^``.
+    - If HEAD is a root commit (no parent), base is the empty tree.
+    """
+
+    completed = run(
+        ["git", "rev-parse", "--verify", "HEAD^"],
+        cwd=str(cwd),
+        check=False,
+        capture_output=True,
+    )
+    if completed.returncode == 0:
+        return "HEAD^"
+    return _get_empty_tree_hash(cwd)
+
+
+def get_staged_diff(
+    cwd: Path,
+    /,
+    *,
+    base_ref: str | None = None,
+) -> str:
     """Return the staged changes as diff text."""
 
-    out: bytes = check_output(
-        [
-            "git",
-            "diff",
-            "--cached",
-            "--patch",
-            "--minimal",
-            "--no-color",
-        ],
-        cwd=str(cwd),
-    )
+    cmd: list[str] = [
+        "git",
+        "diff",
+        "--cached",
+        "--patch",
+        "--minimal",
+        "--no-color",
+    ]
+    if base_ref:
+        cmd.append(base_ref)
+
+    out: bytes = check_output(cmd, cwd=str(cwd))
     return out.decode()
 
 
@@ -85,6 +160,8 @@ def commit_with_message(
     edit: bool,
     cwd: Path,
     /,
+    *,
+    amend: bool = False,
 ) -> int:
     """Create a commit with the given message.
 
@@ -103,7 +180,11 @@ def commit_with_message(
         The subprocess exit code.
     """
 
-    cmd: list[str] = ["git", "commit", "-m", message]
+    cmd: list[str] = ["git", "commit"]
+    if amend:
+        cmd.append("--amend")
+
+    cmd.extend(["-m", message])
     if edit:
         cmd.append("--edit")
 

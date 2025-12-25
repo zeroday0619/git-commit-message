@@ -17,7 +17,9 @@ from ._git import (
     commit_with_message,
     get_repo_root,
     get_staged_diff,
+    has_head_commit,
     has_staged_changes,
+    resolve_amend_base_ref,
 )
 from ._llm import (
     CommitMessageResult,
@@ -31,6 +33,7 @@ class CliArgs(Namespace):
     __slots__ = (
         "description",
         "commit",
+        "amend",
         "edit",
         "provider",
         "model",
@@ -48,6 +51,7 @@ class CliArgs(Namespace):
     ) -> None:
         self.description: str | None = None
         self.commit: bool = False
+        self.amend: bool = False
         self.edit: bool = False
         self.provider: str | None = None
         self.model: str | None = None
@@ -97,6 +101,16 @@ def _build_parser() -> ArgumentParser:
         "--commit",
         action="store_true",
         help="Commit immediately with the generated message.",
+    )
+
+    parser.add_argument(
+        "--amend",
+        action="store_true",
+        help=(
+            "Generate a message suitable for amending the previous commit. "
+            "When set, the diff is computed from the amended commit's parent to the staged index. "
+            "Use with '--commit' to run the amend, or omit '--commit' to print the message only."
+        ),
     )
 
     parser.add_argument(
@@ -198,11 +212,19 @@ def _run(
 
     repo_root: Path = get_repo_root()
 
-    if not has_staged_changes(repo_root):
-        print("No staged changes. Run 'git add' and try again.", file=stderr)
-        return 2
+    if args.amend:
+        if not has_head_commit(repo_root):
+            print("Cannot amend: the repository has no commits yet.", file=stderr)
+            return 2
 
-    diff_text: str = get_staged_diff(repo_root)
+        base_ref = resolve_amend_base_ref(repo_root)
+        diff_text: str = get_staged_diff(repo_root, base_ref=base_ref)
+    else:
+        if not has_staged_changes(repo_root):
+            print("No staged changes. Run 'git add' and try again.", file=stderr)
+            return 2
+
+        diff_text = get_staged_diff(repo_root)
 
     hint: str | None = args.description if isinstance(args.description, str) else None
 
@@ -299,9 +321,9 @@ def _run(
         print(message)
 
     if args.edit:
-        rc: int = commit_with_message(message, True, repo_root)
+        rc: int = commit_with_message(message, True, repo_root, amend=args.amend)
     else:
-        rc = commit_with_message(message, False, repo_root)
+        rc = commit_with_message(message, False, repo_root, amend=args.amend)
 
     return rc
 
