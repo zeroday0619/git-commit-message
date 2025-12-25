@@ -109,7 +109,18 @@ def has_head_commit(
     cwd: Path,
     /,
 ) -> bool:
-    """Return True if the repository has at least one commit (HEAD exists)."""
+    """Return True if the repository has at least one commit (HEAD exists).
+
+    Parameters
+    ----------
+    cwd
+        Repository directory in which to run Git.
+
+    Returns
+    -------
+    bool
+        True if ``HEAD`` exists in the repository, False otherwise.
+    """
 
     completed = run(
         ["git", "rev-parse", "--verify", "HEAD"],
