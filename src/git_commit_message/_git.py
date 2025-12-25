@@ -194,10 +194,12 @@ def get_staged_diff(
     try:
         out: bytes = check_output(cmd, cwd=str(cwd))
     except CalledProcessError as exc:
-        raise RuntimeError(
-            "Failed to retrieve staged diff from Git. "
-            "Ensure that the provided base_ref exists and is a valid Git reference."
-        ) from exc
+        message = "Failed to retrieve staged diff from Git."
+        if base_ref:
+            message += (
+                " Ensure that the provided base_ref exists and is a valid Git reference."
+            )
+        raise RuntimeError(message) from exc
 
     return out.decode()
 
