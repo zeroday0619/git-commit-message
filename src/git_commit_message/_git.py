@@ -169,9 +169,10 @@ def get_staged_diff(
     cwd
         Git working directory.
     base_ref
-        Optional Git reference (e.g., branch name, tag, or commit hash) to
-        diff against. When provided, the staged changes are shown relative to
-        this reference instead of the default ``HEAD``-based index diff.
+        Optional Git reference or tree object ID (e.g., branch name, tag,
+        commit hash, or the empty tree hash) to diff against. When provided,
+        the staged changes are shown relative to this value instead of the
+        default ``HEAD``-based index diff.
 
     Returns
     -------
@@ -190,7 +191,14 @@ def get_staged_diff(
     if base_ref:
         cmd.append(base_ref)
 
-    out: bytes = check_output(cmd, cwd=str(cwd))
+    try:
+        out: bytes = check_output(cmd, cwd=str(cwd))
+    except CalledProcessError as exc:
+        raise RuntimeError(
+            "Failed to retrieve staged diff from Git. "
+            "Ensure that the provided base_ref exists and is a valid Git reference."
+        ) from exc
+
     return out.decode()
 
 
