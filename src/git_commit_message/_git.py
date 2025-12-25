@@ -16,6 +16,11 @@ def _get_empty_tree_hash(
 ) -> str:
     """Return the empty tree hash for this repository.
 
+    Parameters
+    ----------
+    cwd
+        Repository directory in which to run Git.
+
     Notes
     -----
     Do not hard-code the SHA, because repositories may use different
