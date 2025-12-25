@@ -212,6 +212,9 @@ def commit_with_message(
         If True, use the `--edit` flag to open an editor for amendments.
     cwd
         Git working directory.
+    amend
+        If True, pass ``--amend`` to Git to amend the current ``HEAD`` commit
+        instead of creating a new commit.
 
     Returns
     -------
