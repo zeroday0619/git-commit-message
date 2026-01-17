@@ -121,10 +121,25 @@ class LlamaCppProvider:
         model: str,
         text: str,
     ) -> int:
-        """Approximate token count using tiktoken; fallback to whitespace split."""
+        """Count tokens using llama.cpp's official token counting API."""
 
         try:
-            encoding = _get_encoding()
-            return len(encoding.encode(text))
+            # Use llama.cpp's official token counting endpoint via OpenAI client's internal HTTP client
+            response = self._client.post(
+                "/messages/count_tokens",
+                body={
+                    "model": model,
+                    "messages": [
+                        {"role": "user", "content": text}
+                    ]
+                },
+                cast_to=dict,
+            )
+            return response.get("total", 0)
         except Exception:
-            return len(text.split())
+            # Fallback to tiktoken approximation
+            try:
+                encoding = _get_encoding()
+                return len(encoding.encode(text))
+            except Exception:
+                return len(text.split())
